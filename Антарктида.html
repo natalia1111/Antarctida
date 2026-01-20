@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Квест: Антарктида и таяние ледяного покрова</title>
+  <style>
+    :root {
+      --bg: #021526;
+      --panel: #06233a;
+      --accent: #f5b400;
+      --accent-soft: #ffd15c;
+      --text: #f5f5f5;
+      --good: #4caf50;
+      --bad: #e53935;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #06345a 0, #021526 55%, #000 100%);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      align-items: center;
+    }
+    header {
+      text-align: center;
+      padding: 16px 12px 8px;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 1.7rem;
+    }
+    header p {
+      margin: 0;
+      font-size: 0.95rem;
+      opacity: 0.9;
+    }
+    #app {
+      width: 100%;
+      max-width: 1200px;
+      padding: 8px 12px 16px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    .panel {
+      background: rgba(3, 19, 36, 0.9);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: 0 0 18px rgba(0,0,0,0.45);
+    }
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 1.1rem;
+    }
+    .panel small {
+      opacity: 0.8;
+      font-size: 0.8rem;
+    }
+
+    /* Левая панель: регионы, квест, прогресс */
+    .quest-intro {
+      font-size: 0.85rem;
+      margin-top: 4px;
+      opacity: 0.9;
+    }
+    .regions-list {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 320px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .region-btn {
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 6px 10px;
+      background: rgba(9, 52, 90, 0.8);
+      color: var(--text);
+      font-size: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.1s, border-color 0.15s;
+    }
+    .region-btn span.label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .region-btn span.dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .region-btn span.status {
+      font-size: 0.75rem;
+      opacity: 0.8;
+    }
+    .region-btn:hover {
+      background: rgba(15, 76, 122, 0.95);
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+    }
+    .region-btn.active {
+      background: var(--accent);
+      color: #1b1b1b;
+      border-color: transparent;
+    }
+    .region-btn.completed {
+      border-color: var(--good);
+    }
+
+    .progress-bar-wrap {
+      margin-top: 10px;
+    }
+    .progress-label {
+      font-size: 0.8rem;
+      opacity: 0.9;
+      margin-bottom: 4px;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #4caf50, #f5b400);
+      transition: width 0.25s ease-out;
+    }
+    .summary {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      opacity: 0.9;
+    }
+    .timeline {
+      margin-top: 10px;
+      font-size: 0.8rem;
+      opacity: 0.9;
+    }
+    .timeline span.year {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(15, 76, 122, 0.9);
+      margin: 0 2px 2px 0;
+    }
+    .timeline span.year.current {
+      background: var(--accent);
+      color: #1b1b1b;
+      font-weight: 600;
+    }
+
+    .quest-status {
+      margin-top: 8px;
+      font-size: 0.85rem;
+      opacity: 0.95;
+    }
+    .quest-status strong {
+      color: var(--accent-soft);
+    }
+
+    /* Правая панель: игра */
+    .top-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 0.85rem;
+      opacity: 0.9;
+    }
+    .top-info span.tag {
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(15, 76, 122, 0.9);
+      font-size: 0.8rem;
+    }
+    .score {
+      font-size: 0.9rem;
+    }
+
+    .slider-wrap {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+      margin-bottom: 8px;
+      min-height: 260px;
+    }
+    .slider-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      user-select: none;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+    .slider-img.before {
+      opacity: 1;
+    }
+    .slider-img.after {
+      clip-path: inset(0 0 0 50%);
+      transition: clip-path 0.15s linear, opacity 0.4s ease;
+      opacity: 1;
+    }
+    .slider-handle {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--accent);
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+      transition: left 0.15s linear;
+    }
+    .slider-circle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 2px solid #1b1b1b;
+      background: var(--accent);
+      box-shadow: 0 0 10px rgba(0,0,0,0.6);
+      pointer-events: none;
+      transition: left 0.15s linear;
+    }
+    .slider-years {
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      text-shadow: 0 0 4px rgba(0,0,0,0.8);
+    }
+    .slider-years span {
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.55);
+    }
+
+    .slider-control {
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+    }
+    .slider-control input[type="range"] {
+      flex: 1;
+    }
+
+    .question-block {
+      margin-top: 4px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255,255,255,0.12);
+    }
+    .question-text {
+      font-size: 0.95rem;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    .answers {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .answer-btn {
+      border-radius: 999px;
+      border: none;
+      padding: 6px 10px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      background: rgba(15, 76, 122, 0.9);
+      color: var(--text);
+      transition: background 0.15s, transform 0.1s, box-shadow 0.1s;
+    }
+    .answer-btn:hover {
+      background: rgba(23, 104, 160, 1);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .answer-btn.correct {
+      background: var(--good);
+      color: #111;
+    }
+    .answer-btn.wrong {
+      background: var(--bad);
+    }
+    .feedback {
+      min-height: 24px;
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+    .feedback.good { color: #9cff9c; }
+    .feedback.bad { color: #ffb3b3; }
+
+    .nav-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .nav-row button {
+      border-radius: 999px;
+      border: none;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      background: var(--accent);
+      color: #1b1b1b;
+      font-weight: 600;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.1s;
+    }
+    .nav-row button:hover {
+      background: var(--accent-soft);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .nav-row button:disabled {
+      opacity: 0.5;
+      cursor: default;
+      box-shadow: none;
+      transform: none;
+    }
+    .explanation {
+      font-size: 0.8rem;
+      opacity: 0.9;
+      margin-top: 4px;
+    }
+
+    .final-message {
+      margin-top: 6px;
+      font-size: 0.9rem;
+      color: var(--accent-soft);
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Квест: Антарктида и таяние ледяного покрова</h1>
+  <p>Исследуй регионы Антарктиды по космическим снимкам, отвечай на вопросы и собери картину изменений льда.</p>
+</header>
+
+<div id="app">
+  <div class="layout">
+    <!-- Левая панель: регионы, квест, прогресс -->
+    <section class="panel">
+      <h2>Маршрут экспедиции</h2>
+      <div class="quest-intro">
+        Ты — участник научной экспедиции. Твоя задача — исследовать <strong>разные регионы Антарктиды</strong>,
+        сравнить снимки «раньше» и «позже» и понять, где лёд тает быстрее всего и почему.
+      </div>
+
+      <div class="regions-list" id="regionsList"></div>
+
+      <div class="progress-bar-wrap">
+        <div class="progress-label">Общий прогресс по вопросам</div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+      </div>
+
+      <div class="summary" id="summaryBox"></div>
+
+      <div class="timeline" id="timelineBox"></div>
+
+      <div class="quest-status" id="questStatus">
+        Заверши все регионы, чтобы получить итоговое сообщение экспедиции.
+      </div>
+    </section>
+
+    <!-- Правая панель: игра -->
+    <section class="panel">
+      <div class="top-info">
+        <div>
+          <span class="tag" id="regionTag">Регион не выбран</span>
+        </div>
+        <div class="score" id="scoreBox">Очки: 0</div>
+      </div>
+
+      <div class="slider-wrap" id="sliderWrap">
+        <img id="imgBefore" class="slider-img before" src="" alt="Снимок Антарктиды: раньше">
+        <img id="imgAfter" class="slider-img after" src="" alt="Снимок Антарктиды: позже">
+        <div class="slider-handle" id="sliderHandle"></div>
+        <div class="slider-circle" id="sliderCircle"></div>
+        <div class="slider-years">
+          <span id="yearBefore">—</span>
+          <span id="yearAfter">—</span>
+        </div>
+      </div>
+
+      <div class="slider-control">
+        <span>Сдвигай ползунок: слева — раньше, справа — позже</span>
+        <input type="range" id="sliderRange" min="0" max="100" value="50">
+      </div>
+
+      <div class="question-block">
+        <div class="question-text" id="questionText">
+          Выбери регион слева, чтобы начать квест.
+        </div>
+        <div class="answers" id="answersBox"></div>
+        <div class="feedback" id="feedbackBox"></div>
+        <div class="nav-row">
+          <button id="btnPrev" disabled>Назад</button>
+          <button id="btnNext" disabled>Далее</button>
+        </div>
+        <div class="explanation" id="explanationBox"></div>
+        <div class="final-message" id="finalMessage"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+  // -----------------------------
+  // ДАННЫЕ ИГРЫ: РЕГИОНЫ И ВОПРОСЫ
+  // -----------------------------
+  // Все src — прямые ссылки на снимки NASA Earth Observatory (или заглушки для редких регионов).
+  const regions = [
+    {
+      id: "ross",
+      name: "Шельф Росса",
+      before: {
+        year: 2000,
+        src: "https://eoimages.gsfc.nasa.gov/images/imagerecords/144000/144825/ross_oli_2020028_lrg.jpg"
+      },
+      after: {
+        year: 2020,
+        src: "https://eoimages.gsfc.nasa.gov/images/imagerecords/144000/144825/ross_oli_2020036_lrg.jpg"
+      },
+      questions: [
+        {
+          text: "Как изменился ледяной покров шельфа Росса между снимками?",
+          answers: [
+            "Льда стало больше",
+            "Льда стало меньше, появились участки открытой воды",
+            "Изменений нет"
+          ],
+          correctIndex: 1,
+          explanation: "На более позднем снимке видно сокращение площади льда и больше тёмных участков воды."
+        },
+        {
+          text: "Что может быть основной причиной сокращения льда в этом регионе?",
+          answers: [
+            "Усиление тёплых океанических течений",
+            "Рост количества осадков",
+            "Уменьшение скорости ветра"
+          ],
+          correctIndex: 0,
+          explanation: "Тёплые океанические воды подтачивают шельф снизу, ускоряя его разрушение."
+        }
+      ]
+    },
+    {
+      id: "peninsula",
+      name: "Антарктический полуостров (Eagle Island)",
+      before: {
+        year: 2020,
+        src: "https://eoimages.gsfc.nasa.gov/images/imagerecords/146000/146322/eagleisland_oli_20200204_lrg.jpg"
+      },
+      after: {
+        year: 2020,
+        src: "https://eoimages.gsfc.nasa.gov/images/imagerecords/146000/146322/eagleisland_oli_20200304_lrg.jpg"
+      },
+      questions: [
+        {
+          text: "Что заметно на снимке полуострова при сравнении дат?",
+          answers: [
+            "Ледяной покров отступил, появились тёмные участки талой воды",
+            "Лёд полностью закрыл полуостров",
+            "Появились новые ледники"
+          ],
+          correctIndex: 0,
+          explanation: "Тёплая аномалия привела к быстрому таянию снега и льда, оголив поверхность."
+        },
+        {
+          text: "Почему этот эпизод таяния привлёк внимание учёных?",
+          answers: [
+            "Потому что это обычное сезонное явление",
+            "Потому что за несколько дней растаяло необычно много снега",
+            "Потому что здесь нет льда"
+          ],
+          correctIndex: 1,
+          explanation: "За короткий период растаяла значительная часть снежного покрова — это признак экстремального события."
+        }
+      ]
+    },
+    {
+      id: "amundsen",
+      name: "Море Амундсена (ледник Туэйтса)",
+      before: {
+        year: 2021,
+        src: "https://eoimages.gsfc.nasa.gov/images/imagerecords/150000/150186/thwaites_oli_20211202_lrg.jpg"
+      },
+      after: {
+        year: 2022,
+        src: "https://eoimages.gsfc.nasa.gov/images/imagerecords/150000/150186/thwaites_oli_20220105_lrg.jpg"
+      },
+      questions: [
+        {
+          text: "Что видно на снимках моря Амундсена?",
+          answers: [
+            "Усиление трещиноватости и откол крупных айсбергов",
+            "Полное замерзание моря",
+            "Отсутствие льда на обоих снимках"
+          ],
+          correctIndex: 0,
+          explanation: "Трещины и откол айсбергов — признак нестабильности ледяного покрова."
+        },
+        {
+          text: "Почему изменения в этом регионе важны для уровня Мирового океана?",
+          answers: [
+            "Потому что это внутреннее озеро",
+            "Потому что здесь много пресной воды в ледниках",
+            "Потому что здесь нет льда"
+          ],
+          correctIndex: 1,
+          explanation: "Таяние ледников, питающих море Амундсена, вносит вклад в повышение уровня океана."
+        }
+      ]
+    },
+    {
+      id: "larsen",
+      name: "Шельф Ларсена (Larsen B)",
+      before: {
+        year: 2002,
+        src: "https://eoimages.gsfc.nasa.gov/images/imagerecords/3000/3894/larsenb_tmo_20020623_lrg.jpg"
+      },
+      after: {
+        year: 2002,
+        src: "https://eoimages.gsfc.nasa.gov/images/imagerecords/3000/3894/larsenb_tmo_20020305_lrg.jpg"
+      },
+      questions: [
+        {
+          text: "Что произошло с шельфом Ларсена B в 2002 году?",
+          answers: [
+            "Он расширился",
+            "Он практически полностью разрушился за короткий срок",
+            "Он не изменился"
+          ],
+          correctIndex: 1,
+          explanation: "Шельф Ларсена B разрушился за несколько недель — это один из самых известных примеров коллапса шельфа."
+        },
+        {
+          text: "Какое значение имеет разрушение шельфов для ледников, лежащих на суше?",
+          answers: [
+            "Не влияет",
+            "Шельфы удерживают ледники, их разрушение ускоряет стекание льда в океан",
+            "Шельфы делают ледники тяжелее"
+          ],
+          correctIndex: 1,
+          explanation: "Шельфы действуют как «плотина» для ледников. Без них лёд быстрее стекает в море."
+        }
+      ]
+    },
+    {
+      id: "wilkes",
+      name: "Восточная Антарктида (Wilkes Land)",
+      before: {
+        year: 2000,
+        src: "https://eoimages.gsfc.nasa.gov/images/imagerecords/43000/43937/antarctica_tmo_2000001_lrg.jpg"
+      },
+      after: {
+        year: 2020,
+        src: "https://eoimages.gsfc.nasa.gov/images/imagerecords/43000/43937/antarctica_tmo_2010001_lrg.jpg"
+      },
+      questions: [
+        {
+          text: "Как меняется ледяной покров Восточной Антарктиды на снимках?",
+          answers: [
+            "Совсем не меняется",
+            "Изменения менее заметны, чем в Западной Антарктиде, но тенденция таяния всё равно есть",
+            "Лёд резко исчезает полностью"
+          ],
+          correctIndex: 1,
+          explanation: "Восточная Антарктида считается более стабильной, но и здесь фиксируются изменения."
+        },
+        {
+          text: "Почему важно наблюдать даже небольшие изменения в таких «стабильных» регионах?",
+          answers: [
+            "Потому что это красиво",
+            "Потому что они могут стать сигналом долгосрочных тенденций",
+            "Потому что там живут люди"
+          ],
+          correctIndex: 1,
+          explanation: "Даже небольшие изменения помогают понять общую динамику ледяного щита."
+        }
+      ]
+    },
+    {
+      id: "ross_sea",
+      name: "Морской лёд моря Росса",
+      before: {
+        year: 1990,
+        src: "https://eoimages.gsfc.nasa.gov/images/imagerecords/79000/79752/rosssea_amo_19900101_lrg.jpg"
+      },
+      after: {
+        year: 2010,
+        src: "https://eoimages.gsfc.nasa.gov/images/imagerecords/79000/79752/rosssea_amo_20100101_lrg.jpg"
+      },
+      questions: [
+        {
+          text: "Что видно при сравнении морского льда в море Росса?",
+          answers: [
+            "Площадь морского льда меняется от года к году",
+            "Морской лёд всегда одинаковый",
+            "Морского льда нет"
+          ],
+          correctIndex: 0,
+          explanation: "Морской лёд сильно зависит от сезона и межгодовой изменчивости, но на длинных интервалах видны тренды."
+        },
+        {
+          text: "Почему морской лёд важен для климата и экосистем?",
+          answers: [
+            "Он отражает солнечное излучение и служит средой обитания для многих видов",
+            "Он только мешает кораблям",
+            "Он не играет роли"
+          ],
+          correctIndex: 0,
+          explanation: "Морской лёд влияет на альбедо планеты и является ключевой частью экосистемы Южного океана."
+        }
+      ]
+    },
+    {
+      id: "south_pole",
+      name: "Район Южного полюса",
+      before: {
+        year: 1988,
+        src: "https://eoimages.gsfc.nasa.gov/images/imagerecords/73000/73934/antarctica_vir_19880101_lrg.jpg"
+      },
+      after: {
+        year: 2018,
+        src: "https://eoimages.gsfc.nasa.gov/images/imagerecords/73000/73934/antarctica_vir_20180101_lrg.jpg"
+      },
+      questions: [
+        {
+          text: "Почему изменения в районе Южного полюса сложнее заметить визуально?",
+          answers: [
+            "Потому что там всегда темно",
+            "Потому что ледяной покров очень обширен и изменения распределены",
+            "Потому что там нет льда"
+          ],
+          correctIndex: 1,
+          explanation: "Большие площади льда делают локальные изменения менее заметными на отдельных снимках."
+        },
+        {
+          text: "Как учёные отслеживают изменения в таких регионах?",
+          answers: [
+            "Только по фотографиям с земли",
+            "С помощью спутниковых измерений высоты, массы и скорости движения льда",
+            "На глаз"
+          ],
+          correctIndex: 1,
+          explanation: "Используются радары, лазерная альтиметрия и гравиметрические измерения."
+        }
+      ]
+    }
+  ];
+
+  // -----------------------------
+  // СОСТОЯНИЕ
+  // -----------------------------
+  let currentRegionId = null;
+  let currentQuestionIndex = 0;
+  let totalScore = 0;
+  const totalQuestions = regions.reduce((sum, r) => sum + r.questions.length, 0);
+  const answeredMap = {}; // regionId -> [true/false/undefined]
+
+  // -----------------------------
+  // ЭЛЕМЕНТЫ DOM
+  // -----------------------------
+  const regionsList = document.getElementById("regionsList");
+  const progressFill = document.getElementById("progressFill");
+  const summaryBox = document.getElementById("summaryBox");
+  const timelineBox = document.getElementById("timelineBox");
+  const questStatus = document.getElementById("questStatus");
+
+  const regionTag = document.getElementById("regionTag");
+  const scoreBox = document.getElementById("scoreBox");
+
+  const imgBefore = document.getElementById("imgBefore");
+  const imgAfter = document.getElementById("imgAfter");
+  const yearBefore = document.getElementById("yearBefore");
+  const yearAfter = document.getElementById("yearAfter");
+  const sliderRange = document.getElementById("sliderRange");
+  const sliderHandle = document.getElementById("sliderHandle");
+  const sliderCircle = document.getElementById("sliderCircle");
+
+  const questionText = document.getElementById("questionText");
+  const answersBox = document.getElementById("answersBox");
+  const feedbackBox = document.getElementById("feedbackBox");
+  const explanationBox = document.getElementById("explanationBox");
+  const btnPrev = document.getElementById("btnPrev");
+  const btnNext = document.getElementById("btnNext");
+  const finalMessage = document.getElementById("finalMessage");
+
+  // -----------------------------
+  // ОТРИСОВКА РЕГИОНОВ
+  // -----------------------------
+  function renderRegionsList() {
+    regionsList.innerHTML = "";
+    regions.forEach(region => {
+      const btn = document.createElement("button");
+      btn.className = "region-btn";
+      btn.dataset.regionId = region.id;
+
+      const label = document.createElement("span");
+      label.className = "label";
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      const name = document.createElement("span");
+      name.textContent = region.name;
+      label.appendChild(dot);
+      label.appendChild(name);
+
+      const status = document.createElement("span");
+      status.className = "status";
+      const answered = answeredMap[region.id] || [];
+      const doneCount = answered.filter(v => v === true).length;
+      const seenCount = answered.filter(v => v !== undefined).length;
+
+      if (doneCount === region.questions.length && region.questions.length > 0) {
+        status.textContent = "завершено";
+        btn.classList.add("completed");
+      } else if (seenCount > 0) {
+        status.textContent = `вопросы: ${doneCount}/${region.questions.length}`;
+      } else {
+        status.textContent = "не начато";
+      }
+
+      if (region.id === currentRegionId) {
+        btn.classList.add("active");
+      }
+
+      btn.appendChild(label);
+      btn.appendChild(status);
+
+      btn.addEventListener("click", () => {
+        currentRegionId = region.id;
+        currentQuestionIndex = 0;
+        renderRegionsList();
+        renderRegion();
+      });
+
+      regionsList.appendChild(btn);
+    });
+  }
+
+  // -----------------------------
+  // ОТРИСОВКА РЕГИОНА И ВОПРОСА
+  // -----------------------------
+  function renderRegion() {
+    const region = regions.find(r => r.id === currentRegionId);
+    if (!region) {
+      regionTag.textContent = "Регион не выбран";
+      questionText.textContent = "Выбери регион слева, чтобы начать квест.";
+      answersBox.innerHTML = "";
+      feedbackBox.textContent = "";
+      explanationBox.textContent = "";
+      btnPrev.disabled = true;
+      btnNext.disabled = true;
+      imgBefore.src = "";
+      imgAfter.src = "";
+      yearBefore.textContent = "—";
+      yearAfter.textContent = "—";
+      finalMessage.textContent = "";
+      return;
+    }
+
+    regionTag.textContent = region.name;
+
+    // Анимация смены снимков
+    imgBefore.style.opacity = 0;
+    imgAfter.style.opacity = 0;
+    setTimeout(() => {
+      imgBefore.src = region.before.src;
+      imgAfter.src = region.after.src;
+      imgBefore.style.opacity = 1;
+      imgAfter.style.opacity = 1;
+    }, 150);
+
+    yearBefore.textContent = region.before.year;
+    yearAfter.textContent = region.after.year;
+
+    sliderRange.value = 50;
+    updateSlider(50);
+
+    renderQuestion();
+    renderTimeline(region);
+  }
+
+  function renderQuestion() {
+    const region = regions.find(r => r.id === currentRegionId);
+    if (!region) return;
+
+    const q = region.questions[currentQuestionIndex];
+    questionText.textContent = q.text;
+    answersBox.innerHTML = "";
+    feedbackBox.textContent = "";
+    feedbackBox.className = "feedback";
+    explanationBox.textContent = "";
+    finalMessage.textContent = "";
+
+    q.answers.forEach((ans, index) => {
+      const btn = document.createElement("button");
+      btn.className = "answer-btn";
+      btn.textContent = ans;
+      btn.addEventListener("click", () => handleAnswer(region, q, index, btn));
+      answersBox.appendChild(btn);
+    });
+
+    btnPrev.disabled = currentQuestionIndex === 0;
+    btnNext.disabled = currentQuestionIndex === region.questions.length - 1;
+  }
+
+  function handleAnswer(region, question, index, btnClicked) {
+    const regionAnswers = answeredMap[region.id] || [];
+    if (regionAnswers[currentQuestionIndex] === true) {
+      return;
+    }
+
+    const buttons = answersBox.querySelectorAll(".answer-btn");
+    buttons.forEach(b => b.disabled = true);
+
+    if (index === question.correctIndex) {
+      btnClicked.classList.add("correct");
+      feedbackBox.textContent = "Верно!";
+      feedbackBox.classList.add("good");
+      if (regionAnswers[currentQuestionIndex] !== true) {
+        totalScore++;
+      }
+      regionAnswers[currentQuestionIndex] = true;
+    } else {
+      btnClicked.classList.add("wrong");
+      buttons[question.correctIndex].classList.add("correct");
+      feedbackBox.textContent = "Не совсем так.";
+      feedbackBox.classList.add("bad");
+      if (regionAnswers[currentQuestionIndex] === undefined) {
+        regionAnswers[currentQuestionIndex] = false;
+      }
+    }
+
+    answeredMap[region.id] = regionAnswers;
+    explanationBox.textContent = question.explanation;
+    updateScoreAndProgress();
+    renderRegionsList();
+    checkQuestCompletion();
+  }
+
+  // -----------------------------
+  // СЛАЙДЕР
+  // -----------------------------
+  function updateSlider(value) {
+    const percent = Number(value);
+    const clipRight = 100 - percent;
+    imgAfter.style.clipPath = `inset(0 ${clipRight}% 0 0)`;
+    sliderHandle.style.left = percent + "%";
+    sliderCircle.style.left = percent + "%";
+  }
+
+  sliderRange.addEventListener("input", (e) => {
+    updateSlider(e.target.value);
+  });
+
+  // -----------------------------
+  // НАВИГАЦИЯ ПО ВОПРОСАМ
+  // -----------------------------
+  btnPrev.addEventListener("click", () => {
+    const region = regions.find(r => r.id === currentRegionId);
+    if (!region) return;
+    if (currentQuestionIndex > 0) {
+      currentQuestionIndex--;
+      renderQuestion();
+    }
+  });
+
+  btnNext.addEventListener("click", () => {
+    const region = regions.find(r => r.id === currentRegionId);
+    if (!region) return;
+    if (currentQuestionIndex < region.questions.length - 1) {
+      currentQuestionIndex++;
+      renderQuestion();
+    }
+  });
+
+  // -----------------------------
+  // ОЧКИ, ПРОГРЕСС, ТАЙМЛАЙН
+  // -----------------------------
+  function updateScoreAndProgress() {
+    scoreBox.textContent = `Очки: ${totalScore} / ${totalQuestions}`;
+    const answeredCount = Object.values(answeredMap)
+      .reduce((sum, arr) => sum + arr.filter(v => v !== undefined).length, 0);
+    const progress = (answeredCount / totalQuestions) * 100;
+    progressFill.style.width = progress + "%";
+
+    summaryBox.textContent =
+      `Отвечено на ${answeredCount} из ${totalQuestions} вопросов. ` +
+      `Подумай, какие регионы Антарктиды меняются быстрее всего и почему.`;
+  }
+
+  function renderTimeline(region) {
+    const years = regions
+      .flatMap(r => [r.before.year, r.after.year])
+      .sort((a, b) => a - b);
+    const uniqueYears = [...new Set(years)];
+
+    timelineBox.innerHTML = "Таймлайн наблюдений: ";
+    uniqueYears.forEach(y => {
+      const span = document.createElement("span");
+      span.className = "year";
+      span.textContent = y;
+      if (y === region.before.year || y === region.after.year) {
+        span.classList.add("current");
+      }
+      timelineBox.appendChild(span);
+    });
+  }
+
+  function checkQuestCompletion() {
+    const allDone = regions.every(region => {
+      const arr = answeredMap[region.id] || [];
+      return arr.filter(v => v === true).length === region.questions.length;
+    });
+
+    if (allDone) {
+      questStatus.innerHTML =
+        "Квест завершён! Ты исследовал(а) все регионы. " +
+        "Сделай вывод: <strong>где лёд тает быстрее всего и какие факторы играют главную роль?</strong>";
+      finalMessage.textContent =
+        "Попробуй сформулировать общий вывод экспедиции: " +
+        "как изменяется ледяной покров Антарктиды и почему это важно для Мирового океана и климата.";
+    }
+  }
+
+  // -----------------------------
+  // ИНИЦИАЛИЗАЦИЯ
+  // -----------------------------
+  renderRegionsList();
+  updateScoreAndProgress();
+  updateSlider(50);
+</script>
+</body>
+</html>
